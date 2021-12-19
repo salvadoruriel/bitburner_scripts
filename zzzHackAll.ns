@@ -3,26 +3,7 @@
 //Scans for all servers in the game
 //	then hacks each & makes them run 
 //	a moneyMaker script (targeting some server defined in the script)
-
-let knownServers = {
-	home: 'home'
-}
-
-function recursiveScan(ns, host) {
-	const targets = ns.scan(host);
-	//ns.tprintf(`scanned: ${targets}`)
-	for (const target of targets) {
-		//ns.tprintf(`checking: ${target} -- ${knownServers[target]}`)
-		if (knownServers[target]) //already seen, skip
-			continue
-		else {
-			knownServers[target] = target
-			recursiveScan(ns, target)
-			//ns.tprintf(`Added: ${target}`)
-		}
-	}
-}
-
+import { recursiveScan } from 'targetFinder.ns';
 import { hackServer } from 'hackServer.ns';
 
 export async function main(ns) {
@@ -30,7 +11,7 @@ export async function main(ns) {
 	const moneyScript = 'slaveMoneyMaker.ns';
 	ns.exec('masterMoneyMaker.ns', 'home') //when using slave/masters to save ram
 	//get all servers in the game
-	recursiveScan(ns, knownServers.home)
+	let knownServers = recursiveScan(ns, 'home');
 
 	//prepare variables
 	let cntMoneyMakers = 0;

@@ -1,0 +1,60 @@
+/** @param {NS} ns **/
+//Scans for all servers in the game
+//	to display data & try to find the best value
+let knownServers = {
+	home: 'home'
+}
+
+export function recursiveScan(ns, host) {
+	const targets = ns.scan(host);
+	//ns.tprintf(`scanned: ${targets}`)
+	for (const target of targets) {
+		//ns.tprintf(`checking: ${target} -- ${knownServers[target]}`)
+		if (knownServers[target]) //already seen, skip
+			continue
+		else {
+			knownServers[target] = target
+			recursiveScan(ns, target)
+			//ns.tprintf(`Added: ${target}`)
+		}
+	}
+	return {...knownServers};
+}
+
+export async function main(ns) {
+	let targets = recursiveScan(ns, 'home');
+	delete targets.home;
+	const userLevel = ns.getHackingLevel();
+	//maping targets to array of objects with relevant properties
+	targets = Object.values(targets).map((target) => {
+		let obj = {
+			target,
+			maxMoney: ns.getServerMaxMoney(target),
+			minSecurity: ns.getServerMinSecurityLevel(target),
+			level: ns.getServerRequiredHackingLevel(target),
+			hackTime: ns.getHackTime(target),
+			growthTime: ns.getGrowTime(target),
+			weakenTime: ns.getWeakenTime(target),
+			growth: ns.getServerGrowth(target), //is 0 to 100 //Unused yet, formula unkown
+		}
+		//parameter with which we will consider best target
+		if (userLevel < obj.level)
+			obj.valuation = -1
+		else
+			obj.valuation = (obj.maxMoney / obj.minSecurity) / obj.hackTime
+		return obj
+	});
+	//ordering best to worst(in place by javascript)
+	targets.sort((a, b) => b.valuation - a.valuation)
+	const best = targets[0]
+	ns.tprintf(`INFO Best target: ${JSON.stringify(best)}`)
+
+	if (false) return
+	ns.tprintf(`WARN Other targets: -------------------------------------------------------------------------------`)
+	targets.forEach((item, idx) => {
+		if (idx === 0) return
+		ns.tprintf(`${JSON.stringify(item)}`)
+	})
+
+	return best
+}
