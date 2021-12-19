@@ -11,7 +11,7 @@ export async function main(ns) {
 	targetObj.securityThresh = ns.getServerMinSecurityLevel(target) + 5;
 	while (true) {
 		targetObj.serverSecurityLevel = ns.getServerSecurityLevel(target);
-		targetObj.serverMoneyLevel = ns.getServerMoneyAvailable(target);
+		targetObj.serverMoneyAvailable = ns.getServerMoneyAvailable(target);
 		//window.targetObj = targetObj;
 		let stringOb = JSON.stringify(targetObj)
 		eval(`window.targetObj = ${stringOb}`)
