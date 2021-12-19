@@ -1,7 +1,9 @@
 /** @param {NS} ns **/
+// 5.25GB script
+//Scans for all servers in the game
+//	then hacks each & makes them run 
+//	a moneyMaker script (targeting some server defined in the script)
 
-//Scans all servers in the game
-//	then hacks each & makes them run moneyMaker.ns towards some specific server
 let knownServers = {
 	home: 'home'
 }
@@ -25,17 +27,20 @@ import { hackServer } from 'hackServer.ns';
 
 export async function main(ns) {
 	const targetMoney = ns.args[0] || 'joesguns';
-	const moneyScript = 'moneyMaker.ns';
+	const moneyScript = 'slaveMoneyMaker.ns';
+	ns.exec('masterMoneyMaker.ns', 'home') //when using slave/masters to save ram
 	//get all servers in the game
 	recursiveScan(ns, knownServers.home)
-	//start hacking
-	let cntMoneyMakers = 0
-	let cntHackedTargets = 0
-	const targets = Object.values(knownServers)
-	ns.tprintf(`INFO Target servers: ${Object.values(knownServers)}`)
-	for (const target of targets) {
-		if (target === knownServers.home) continue
 
+	//prepare variables
+	let cntMoneyMakers = 0;
+	let cntHackedTargets = 0;
+	delete knownServers.home;
+	const targets = Object.values(knownServers)
+	ns.tprintf(`INFO Target servers: ${targets}`)
+	//start hacking
+	for (const target of targets) {
+		//if hacked, try to run moneyMaker with the most threads
 		if (hackServer(ns, target)) {
 			ns.tprintf(`${target} was hacked`)
 			cntHackedTargets++
@@ -59,7 +64,7 @@ export async function main(ns) {
 			//Try to remove previous scripts
 			if (ns.ps(target).length > 0 && !ns.killall(target))
 				ns.tprintf(`WARN [${target}]--Scripts couldn't be killed.`)
-			//GET MONEY!!!
+			//GET MONEY!!! (or try to)
 			let ansScp = await ns.scp(moneyScript, target)
 			if (!ansScp) {
 				ns.tprintf(`ERROR [${target}]--${moneyScript} couldn't be copied.`)
@@ -74,12 +79,12 @@ export async function main(ns) {
 				ns.tprintf(`ERROR [${target}]${moneyScript} wasn't run on target. 
 				Threads: ${threads}. TargetMoney: ${targetMoney}. Ram: ${maxRam}. ScriptRam: ${scriptRam * threads}`)
 		}
-		else {
+		else
 			continue
-		}
 	}
+	//display info
 	let cntOtherServers = targets.length
-	ns.tprintf(`INFO Finished hacking: ${cntHackedTargets} out of ${cntOtherServers}`)
-	ns.tprintf(`Servers making money: ${cntMoneyMakers} out of ${cntOtherServers}`)
+	ns.tprintf(`INFO 🕶️Finished hacking: ${cntHackedTargets} out of ${cntOtherServers}`)
+	ns.tprintf(`💵Servers making money: ${cntMoneyMakers} out of ${cntOtherServers}`)
 	ns.tprintf(`WARN don't forget to run ${moneyScript} on home`)
 }

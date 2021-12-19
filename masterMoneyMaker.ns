@@ -1,0 +1,24 @@
+/** @param {NS} ns **/
+//2GB only, no need for more threads
+//Master script, constantly loads all data in the window to be used publicly
+export async function main(ns) {
+	const target = ns.args[0] || 'joesguns';//joes' most profitable?
+	let targetObj = {
+		target
+	}
+
+	targetObj.moneyThresh = ns.getServerMaxMoney(target) * 0.75;
+	targetObj.securityThresh = ns.getServerMinSecurityLevel(target) + 5;
+	while (true) {
+		targetObj.serverSecurityLevel = ns.getServerSecurityLevel(target);
+		targetObj.serverMoneyLevel = ns.getServerMoneyAvailable(target);
+		//window.targetObj = targetObj;
+		let stringOb = JSON.stringify(targetObj)
+		eval(`window.targetObj = ${stringOb}`)
+		/* 
+				let ans = eval('window.targetObj')
+				console.log(ans)
+				ns.tprintf(`${ans.target}`) */
+		await ns.sleep(10);
+	}
+}

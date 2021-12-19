@@ -1,0 +1,25 @@
+/** @param {NS} ns **/
+//2GB only
+//Minimal moneyMaker script, only depends on data fed by a master script in window
+export async function main(ns) {
+	while (true) {
+		//getting object
+		let targetObj = eval('window.targetObj');
+		while (!targetObj) {
+			ns.tprintf(`ERROR targetObj not found in window`);
+			await ns.sleep(20 * 1000)
+		}
+
+		//get parameters from object
+		let { target, securityThresh, serverSecurityLevel,
+			moneyThresh, serverMoneyAvailable } = targetObj;
+
+		//run relevant script
+		if (serverSecurityLevel > securityThresh)
+			await ns.weaken(target);
+		else if (serverMoneyAvailable < moneyThresh)
+			await ns.grow(target);
+		else
+			await ns.hack(target);
+	}
+}
