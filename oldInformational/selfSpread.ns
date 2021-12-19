@@ -1,0 +1,109 @@
+/** @param {NS} ns **/
+//script automation to hack server, SPREAD itself & run moneymaker as max as possible
+//	also tries to run moneyMaker.ns threaded for itself
+export async function main(ns) {
+	const prev = ns.args[0];
+	const host = ns.getHostname()
+	const targets = ns.scan(host);
+	const moneyMaker = 'moneyMaker.ns';
+	const spreadVirus = 'selfSpread.ns';
+	const lightVirus = 'LIGHT-selfSpread.ns';
+	const files = [moneyMaker, spreadVirus, lightVirus];
+
+	//for each target hack and copy files to there
+	ns.tprintf(`INFO[${host}] is trying to hack the following servers: ${targets}`)
+	//targets.forEach(async (target) => { //wont work like this
+	for (const target of targets) {
+		//check we aren't trying to hack home nor the previous element
+		if (prev === target || target === 'home') {
+			ns.tprintf(`[${host}] skipping ${target}`)
+			continue
+		}
+
+		//start hacking
+		let portsOpened = 0;
+		if (ns.fileExists("BruteSSH.exe", "home")) {
+			ns.brutessh(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("FTPCrack.exe", "home")) {
+			ns.ftpcrack(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("relaySMTP.exe", "home")) {
+			ns.relaysmtp(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("HTTPWorm.exe", "home")) {
+			ns.httpworm(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("SQLInject.exe", "home")) {
+			ns.sqlinject(target);
+			portsOpened++;
+		}
+		let requiredPorts = ns.getServerNumPortsRequired(target)
+		if (portsOpened < requiredPorts) {
+			ns.tprintf(`ERROR[${host}] Server ${target} needs more ports. Opened only ${portsOpened} out of ${requiredPorts}.`);
+			continue;
+		}
+		ns.nuke(target);
+
+		if (!ns.hasRootAccess(target)) {
+			ns.tprintf(`ERROR[${host}]>>>[${target}] Server ${target} couldn't be hacked.`)
+		}
+		else
+			ns.tprintf(`[${host}]>>>[${target}]*The server ${target} has been successfully hacked.`)
+
+		//copies scripts from home server to the new target
+		for (const file of files) {
+			let ans = await ns.scp(file, "home", target);
+			if (ans)
+				ns.tprintf(`[${host}]>>>[${target}]--${file} was copied successfully.`)
+			else
+				ns.tprintf(`WARN[${host}]>>>[${target}]--${file} Couldn't be copied.`)
+		}
+		//proceed to execute virus in remote pc
+		if (ns.exec(spreadVirus, target, 1, host))
+			ns.tprintf(`[${host}]>>>[${target}]--*${spreadVirus} spreading itself.`)
+		else {
+			//try to run lighter version
+			ns.tprintf(`WARN[${host}]>>>[${target}] ${spreadVirus} couldn't spread itself maybe low ram?.`)
+			if (ns.exec(lightVirus, target)) {
+				ns.tprintf(`WARN[${host}]>>>[${target}]${lightVirus} was ran instead.`)
+				//now try to run moneyMaker
+				let maxRam = ns.getServerMaxRam(host);
+				let scriptRam = ns.getScriptRam(moneyMaker);
+				let threads = Math.floor(maxRam / scriptRam);
+				if (threads === 0) {
+					ns.tprint(`ERROR[${host}]>>>[${target}]${moneyMaker} can't be run in this server: ${target}`)
+					ns.tprintf(`ERROR[${host}]>>>[${target}]scriptRam/maxRam	-	${scriptRam}/${maxRam}`)
+					ns.tprintf(`ERROR[${host}]>>>[${target}]threads		-	${threads}`)
+					continue
+				}
+				while (ns.isRunning(lightVirus, target))
+					await ns.sleep(3000) //give time for lightVirus to spread and then run
+				if (ns.exec(moneyMaker, target, threads))
+					ns.tprintf(`[${host}]>>>[${target}]--${moneyMaker} was ran successfully .`)
+				else
+					ns.tprintf(`ERROR[${host}]>>>[${target}]${moneyMaker} wasn't run on target. How?`)
+			}
+			else
+				ns.tprintf(`ERROR[${host}]>>>[${target}] even ${lightVirus} couldn't be run, virus wasn't spread from here.`)
+		}
+	}//)
+	if (host === 'home') return
+	//afterwards calculate how heavy can moneyMaker be run in current server to be left as running script
+	let maxRam = ns.getServerMaxRam(host);
+	let scriptRam = ns.getScriptRam(moneyMaker);
+	let threads = Math.floor(maxRam / scriptRam);
+	if (threads === 0) {
+		ns.tprint(`ERROR[${host}]${moneyMaker} can't be run in this server: ${host}`)
+		ns.tprintf(`ERROR[${host}]scriptRam/maxRam	-	${scriptRam}/${maxRam}`)
+		ns.tprintf(`ERROR[${host}]threads		-	${threads}`)
+		return
+	}
+	ns.tprintf(`INFO[${host}]Running ${moneyMaker} with ${threads} threads`)
+	//ns.exec(moneyMaker, host, threads)
+	ns.spawn(moneyMaker, threads);
+}

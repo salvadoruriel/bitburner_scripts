@@ -1,0 +1,9 @@
+/** @param {NS} ns **/
+export async function main(ns) {
+    ns.tprintf('INFO---available log colors:')
+    ns.tprintf('INFOthey only need to be at the start')
+    ns.tprintf(`otherwise INFO or others won't work`)
+    ns.tprintf('WARN this is a warning')
+    ns.tprintf('WARNING this is also warning')
+    ns.tprintf('ERROR this is an error')
+}

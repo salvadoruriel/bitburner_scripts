@@ -1,0 +1,1 @@
+Here go scripts that aren't used but have some curious use case and/or interesting interactions with the game.

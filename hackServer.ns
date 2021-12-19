@@ -1,0 +1,67 @@
+/** @param {NS} ns **/
+//https://bitburner.readthedocs.io/en/latest/netscript/advancedfunctions/autocomplete.html
+export function autocomplete(data, args) {
+	return [...data.servers]; // This script autocompletes the list of servers.
+	return [...data.servers, ...data.scripts]; // Autocomplete servers and scripts
+	//return ["low", "medium", "high"]; // Autocomplete 3 specific strings.
+}
+
+//returns true if succesfully hacked (gained root access)
+export function hackServer(ns, target) {
+	//Open ports & try to hack
+	let portsOpened = 0;
+	if (ns.fileExists("BruteSSH.exe", "home")) {
+		ns.brutessh(target);
+		portsOpened++;
+	}
+	if (ns.fileExists("FTPCrack.exe", "home")) {
+		ns.ftpcrack(target);
+		portsOpened++;
+	}
+	if (ns.fileExists("relaySMTP.exe", "home")) {
+		ns.relaysmtp(target);
+		portsOpened++;
+	}
+	if (ns.fileExists("HTTPWorm.exe", "home")) {
+		ns.httpworm(target);
+		portsOpened++;
+	}
+	if (ns.fileExists("SQLInject.exe", "home")) {
+		ns.sqlinject(target);
+		portsOpened++;
+	}
+	let requiredPorts = ns.getServerNumPortsRequired(target)
+	if (portsOpened < requiredPorts) {
+		ns.tprintf(`ERROR [${target}] needs more ports. Opened only ${portsOpened} out of ${requiredPorts}.`);
+		return false;
+	}
+	ns.nuke(target);
+
+	if (!ns.hasRootAccess(target)) {
+		ns.tprintf(`ERROR Couldn't hack [${target}]`)
+		return false
+	}
+	else
+		return true
+}
+
+//tries to hack a server and load moneymaker script into it
+export async function main(ns) {
+	var target = ns.args[0];
+	var script = ns.args[1] || 'moneyMaker.ns';
+	if (!ns.serverExists(target)) {
+		ns.tprint(`ERROR: Server ${target} does not exist`)
+		return
+	}
+	//start hacking
+	if (!hackServer(ns, target)) {
+		ns.tprint(`ERROR: Server ${target} coudln't be hacked.`)
+		return
+	}
+
+	let ans = await ns.scp(script, target);
+	if (ans)
+		ns.tprint(`The server ${target} has been successfully hacked, ${script} is waiting to be run`)
+	else
+		ns.tprint(`ERROR with: ${target}. ${script} Couldn't be copied `)
+}

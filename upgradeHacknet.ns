@@ -1,0 +1,67 @@
+/** @param {NS} ns **/
+//original from:
+//https://bitburner.readthedocs.io/en/latest/netscript/netscripthacknetnodeapi.html
+export async function main(ns) {
+	function myMoney() {
+		return ns.getServerMoneyAvailable("home");
+	}
+
+	ns.disableLog("getServerMoneyAvailable");
+	ns.disableLog("sleep");
+
+	const cnt = ns.args[0] || Math.max(8, ns.hacknet.numNodes()); //count of hacknet nodes
+	const maxLevel = ns.args[1] || 100;
+	const maxRam = ns.args[2] || 16;
+	const maxCores = ns.args[3] || 8;
+
+	while (ns.hacknet.numNodes() < cnt) {
+		let res = ns.hacknet.purchaseNode();
+		ns.print("-*-Purchased hacknet Node with index " + res);
+		await ns.sleep(3000)
+	};
+	ns.print(`**All [${cnt}] nodes bought.`);
+
+	for (var i = 0; i < cnt; i++) {
+		while (ns.hacknet.getNodeStats(i).level <= maxLevel) {
+			var cost = ns.hacknet.getLevelUpgradeCost(i, 1);
+			while (myMoney() < cost) {
+				ns.print("LEVEL: Need $" + cost + " . Have $" + myMoney());
+				await ns.sleep(3000);
+			}
+			let res = ns.hacknet.upgradeLevel(i, 1);
+			ns.print(`-*-Upgraded LEVEL of Node (${i}): ${res}`);
+		};
+	};
+
+	ns.print(`**All [${cnt}] nodes upgraded to level [${maxLevel}]`);
+
+	for (var i = 0; i < cnt; i++) {
+		while (ns.hacknet.getNodeStats(i).ram < maxRam) {
+			var cost = ns.hacknet.getRamUpgradeCost(i, 1);
+			while (myMoney() < cost) {
+				ns.print("RAM: Need $" + cost + " . Have $" + myMoney());
+				await ns.sleep(3000);
+			}
+			let res = ns.hacknet.upgradeRam(i, 1);
+			ns.print(`-*-Upgraded RAM of Node (${i}): ${res}`);
+		};
+	};
+
+	ns.print(`**All [${cnt}] nodes upgraded to [${maxRam}]GB RAM`);
+
+	for (var i = 0; i < cnt; i++) {
+		while (ns.hacknet.getNodeStats(i).cores < maxCores) {
+			var cost = ns.hacknet.getCoreUpgradeCost(i, 1);
+			while (myMoney() < cost) {
+				ns.print("CORES: Need $" + cost + " . Have $" + myMoney());
+				await ns.sleep(3000);
+			}
+			let res = ns.hacknet.upgradeCore(i, 1);
+			ns.print(`-*-Upgraded CORE of Node (${i}): ${res}`);
+		};
+	};
+
+	ns.print(`**All [${cnt}] nodes upgraded to [${maxCores}] cores`);
+
+	ns.tprint(`**All [${cnt}] Hacknet cores upgraded to the max.`);
+}

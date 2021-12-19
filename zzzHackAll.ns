@@ -1,0 +1,85 @@
+/** @param {NS} ns **/
+
+//Scans all servers in the game
+//	then hacks each & makes them run moneyMaker.ns towards some specific server
+let knownServers = {
+	home: 'home'
+}
+
+function recursiveScan(ns, host) {
+	const targets = ns.scan(host);
+	//ns.tprintf(`scanned: ${targets}`)
+	for (const target of targets) {
+		//ns.tprintf(`checking: ${target} -- ${knownServers[target]}`)
+		if (knownServers[target]) //already seen, skip
+			continue
+		else {
+			knownServers[target] = target
+			recursiveScan(ns, target)
+			//ns.tprintf(`Added: ${target}`)
+		}
+	}
+}
+
+import { hackServer } from 'hackServer.ns';
+
+export async function main(ns) {
+	const targetMoney = ns.args[0] || 'joesguns';
+	const moneyScript = 'moneyMaker.ns';
+	//get all servers in the game
+	recursiveScan(ns, knownServers.home)
+	//start hacking
+	let cntMoneyMakers = 0
+	let cntHackedTargets = 0
+	const targets = Object.values(knownServers)
+	ns.tprintf(`INFO Target servers: ${Object.values(knownServers)}`)
+	for (const target of targets) {
+		if (target === knownServers.home) continue
+
+		if (hackServer(ns, target)) {
+			ns.tprintf(`${target} was hacked`)
+			cntHackedTargets++
+
+			//now calculate threads that I can use to run moneyMaker
+			let maxRam = ns.getServerMaxRam(target);
+			let scriptRam = ns.getScriptRam(moneyScript);
+			let threads = Math.floor(maxRam / scriptRam);
+			if (threads === 0) {
+				ns.tprint(`WARN [${target}]${moneyScript} can't be run in this server. (0 threads)`)
+				ns.tprintf(`WARN [${target}]scriptRam/maxRam	-	${scriptRam}GB/${maxRam}GB`)
+				continue
+			}
+			//can I even hack the targetMoney server?
+			let myLevel = ns.getHackingLevel()
+			let reqLevel = ns.getServerRequiredHackingLevel(targetMoney)
+			if (myLevel < reqLevel) {
+				ns.tprint(`WARN [${targetMoney}]Hacker level too low: ${myLevel} / ${reqLevel}`)
+				continue
+			}
+			//Try to remove previous scripts
+			if (ns.ps(target).length > 0 && !ns.killall(target))
+				ns.tprintf(`WARN [${target}]--Scripts couldn't be killed.`)
+			//GET MONEY!!!
+			let ansScp = await ns.scp(moneyScript, target)
+			if (!ansScp) {
+				ns.tprintf(`ERROR [${target}]--${moneyScript} couldn't be copied.`)
+				continue
+			}
+			if (ns.exec(moneyScript, target, threads)) {
+				ns.tprintf(`INFO [${target}]--${moneyScript} was ran successfully.`)
+				cntMoneyMakers++
+				await ns.sleep(150) //awaiting a bit so all scripts don't rum same instructions at same time
+			}
+			else
+				ns.tprintf(`ERROR [${target}]${moneyScript} wasn't run on target. 
+				Threads: ${threads}. TargetMoney: ${targetMoney}. Ram: ${maxRam}. ScriptRam: ${scriptRam * threads}`)
+		}
+		else {
+			continue
+		}
+	}
+	let cntOtherServers = targets.length
+	ns.tprintf(`INFO Finished hacking: ${cntHackedTargets} out of ${cntOtherServers}`)
+	ns.tprintf(`Servers making money: ${cntMoneyMakers} out of ${cntOtherServers}`)
+	ns.tprintf(`WARN don't forget to run ${moneyScript} on home`)
+}

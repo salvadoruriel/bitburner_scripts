@@ -1,0 +1,67 @@
+/** @param {NS} ns **/
+//Lighter version, DOESN'T EXECUTE ANYTHING, so it is basically the last branch in execution
+
+export async function main(ns) {
+	const prev = ns.args[0];
+	const host = ns.getHostname()
+	const targets = ns.scan(host);
+	const moneyMaker = 'moneyMaker.ns';
+	const spreadVirus = 'selfSpread.ns';
+	const lightVirus = 'LIGHT-selfSpread.ns';
+	const files = [moneyMaker, spreadVirus, lightVirus];
+
+	//for each target hack and copy files to there
+	ns.tprintf(`INFO LIGHT[${host}] is trying to hack the following servers: ${targets}`)
+	//targets.forEach(async (target) => { //wont work like this
+	for (const target of targets) {
+		//check we aren't trying to hack home nor the previous element
+		if (prev === target || target === 'home') {
+			ns.tprintf(`LIGHT[${host}] skipping ${target}`)
+			continue
+		}
+
+		//start hacking
+		let portsOpened = 0;
+		if (ns.fileExists("BruteSSH.exe", "home")) {
+			ns.brutessh(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("FTPCrack.exe", "home")) {
+			ns.ftpcrack(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("relaySMTP.exe", "home")) {
+			ns.relaysmtp(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("HTTPWorm.exe", "home")) {
+			ns.httpworm(target);
+			portsOpened++;
+		}
+		if (ns.fileExists("SQLInject.exe", "home")) {
+			ns.sqlinject(target);
+			portsOpened++;
+		}
+		let requiredPorts = ns.getServerNumPortsRequired(target)
+		if (portsOpened < requiredPorts) {
+			ns.tprintf(`ERROR[${host}]Server ${target} needs more ports. Opened only ${portsOpened} out of ${requiredPorts}.`);
+			continue;
+		}
+		ns.nuke(target);
+
+		if (!ns.hasRootAccess(target)) {
+			ns.tprintf(`ERROR LIGHT[${host}]>>>[${target}]Server ${target} couldn't be hacked.`)
+		}
+		else
+			ns.tprintf(`LIGHT[${host}]>>>[${target}]*The server ${target} has been successfully hacked.`)
+
+		//copies scripts from home server to the new target
+		for (const file of files) {
+			let ans = await ns.scp(file, "home", target);
+			if (ans)
+				ns.tprintf(`LIGHT[${host}]>>>[${target}]${file} was copied successfully.`)
+			else
+				ns.tprintf(`WARN LIGHT[${host}]>>>[${target}] with: ${target}. ${file} Couldn't be copied.`)
+		}
+	}//)
+}
