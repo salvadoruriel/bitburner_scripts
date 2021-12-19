@@ -8,33 +8,26 @@ export function autocomplete(data, args) {
 
 //returns true if succesfully hacked (gained root access)
 export function hackServer(ns, target) {
-	//Open ports & try to hack
+	//Defining things to use, also to avoid dynamic/static ram error
 	let portsOpened = 0;
-	if (ns.fileExists("BruteSSH.exe", "home")) {
-		ns.brutessh(target);
-		portsOpened++;
-	}
-	if (ns.fileExists("FTPCrack.exe", "home")) {
-		ns.ftpcrack(target);
-		portsOpened++;
-	}
-	if (ns.fileExists("relaySMTP.exe", "home")) {
-		ns.relaysmtp(target);
-		portsOpened++;
-	}
-	if (ns.fileExists("HTTPWorm.exe", "home")) {
-		ns.httpworm(target);
-		portsOpened++;
-	}
-	if (ns.fileExists("SQLInject.exe", "home")) {
-		ns.sqlinject(target);
-		portsOpened++;
-	}
+	const programs = ['BruteSSH.exe', 'FTPCrack.exe', 'relaySMTP.exe',
+		'HTTPWorm.exe', 'SQLInject.exe']
+	const funcs = [ns.brutessh, ns.ftpcrack, ns.relaysmtp,
+	ns.httpworm, ns.sqlinject]
+	//open ports
+	programs.forEach((prog, idx) => {
+		if (ns.fileExists(prog, "home")) {
+			funcs[idx](target);//f() must be in order
+			portsOpened++;
+		}
+	})
+	//check if enough
 	let requiredPorts = ns.getServerNumPortsRequired(target)
 	if (portsOpened < requiredPorts) {
 		ns.tprintf(`ERROR [${target}] needs more ports. Opened only ${portsOpened} out of ${requiredPorts}.`);
 		return false;
 	}
+	//try to hack
 	ns.nuke(target);
 
 	if (!ns.hasRootAccess(target)) {
