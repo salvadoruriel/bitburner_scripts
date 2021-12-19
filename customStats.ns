@@ -1,7 +1,6 @@
 /** @param {NS} ns **/
 //adding info the the hud
-//orig by in-sight, modded by me
-
+//orig from bitburner-oficial/bitburner-docs, modded by me
 export async function main(ns) {
 	const format = (num) => ns.nFormat(num, '0.00a')
 	const doc = eval('document');

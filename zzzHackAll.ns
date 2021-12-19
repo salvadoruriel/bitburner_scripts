@@ -7,9 +7,9 @@ import { recursiveScan } from 'targetFinder.ns';
 import { hackServer } from 'hackServer.ns';
 
 export async function main(ns) {
-	const targetMoney = ns.args[0] || 'joesguns';
+	const targetMoney = ns.args[0] || 'foodnstuff';
 	const moneyScript = 'slaveMoneyMaker.ns';
-	ns.exec('masterMoneyMaker.ns', 'home') //when using slave/masters to save ram
+	ns.exec('masterMoneyMaker.ns', 'home', 1, targetMoney) //when using slave/masters to save ram
 	//get all servers in the game
 	let knownServers = recursiveScan(ns, 'home');
 
