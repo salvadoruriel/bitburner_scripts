@@ -5,6 +5,12 @@ let knownServers = {
 	home: 'home'
 }
 
+
+export function autocomplete(data, args) {
+	//return [...data.servers]; // This script autocompletes the list of servers.
+	return ["verbose"]; // Autocomplete 3 specific strings.
+}
+
 export function recursiveScan(ns, host) {
 	const targets = ns.scan(host);
 	//ns.tprintf(`scanned: ${targets}`)
@@ -18,43 +24,82 @@ export function recursiveScan(ns, host) {
 			//ns.tprintf(`Added: ${target}`)
 		}
 	}
-	return {...knownServers};
+	return { ...knownServers };
+}
+
+export function getServerContracts(ns, target) {
+	let obj = ns.ls(target, '.cct').map((file, idx) => (
+		{
+			type: ns.codingcontract.getContractType(file, target),
+			data: ns.codingcontract.getData(file, target),
+			description: ns.codingcontract.getDescription(file, target),
+			initialTries: ns.codingcontract.getNumTriesRemaining(file, target),
+		}
+	));
+	return [...obj]
+}
+
+export function getServerInfo(ns, target) { //heavy due to contracts
+	const userLevel = ns.getHackingLevel();
+	let obj = {
+		target,
+		maxMoney: ns.getServerMaxMoney(target),
+		minSecurity: ns.getServerMinSecurityLevel(target),
+		level: ns.getServerRequiredHackingLevel(target),
+		hackTime: ns.getHackTime(target),
+		growthTime: ns.getGrowTime(target),
+		weakenTime: ns.getWeakenTime(target),
+		growth: ns.getServerGrowth(target), //is 0 to 100 //Unused yet, formula unkown
+		files: ns.ls(target),
+		//contracts: getServerContracts(ns, target),
+	}
+	//parameter with which we will consider best target
+	if (userLevel < obj.level)
+		obj.valuation = -1
+	else
+		obj.valuation = (obj.maxMoney / obj.minSecurity) / obj.hackTime
+	return obj
 }
 
 export async function main(ns) {
+	var settings = ns.flags([
+		['verbose', false]
+	])
+
 	let targets = recursiveScan(ns, 'home');
+	let allServers = [...Object.values(targets)]; //to later get all contracts
 	delete targets.home;
-	const userLevel = ns.getHackingLevel();
 	//maping targets to array of objects with relevant properties
 	targets = Object.values(targets).map((target) => {
-		let obj = {
-			target,
-			maxMoney: ns.getServerMaxMoney(target),
-			minSecurity: ns.getServerMinSecurityLevel(target),
-			level: ns.getServerRequiredHackingLevel(target),
-			hackTime: ns.getHackTime(target),
-			growthTime: ns.getGrowTime(target),
-			weakenTime: ns.getWeakenTime(target),
-			growth: ns.getServerGrowth(target), //is 0 to 100 //Unused yet, formula unkown
-		}
-		//parameter with which we will consider best target
-		if (userLevel < obj.level)
-			obj.valuation = -1
-		else
-			obj.valuation = (obj.maxMoney / obj.minSecurity) / obj.hackTime
-		return obj
+		return getServerInfo(ns, target);
 	});
 	//ordering best to worst(in place by javascript)
 	targets.sort((a, b) => b.valuation - a.valuation)
 	const best = targets[0]
-	ns.tprintf(`INFO Best target: ${JSON.stringify(best)}`)
 
-	if (false) return
-	ns.tprintf(`WARN Other targets: -------------------------------------------------------------------------------`)
-	targets.forEach((item, idx) => {
-		if (idx === 0) return
-		ns.tprintf(`${JSON.stringify(item)}`)
+	//display other servers
+	if (settings.verbose) {
+		ns.tprintf(`WARN Other targets: -------------------------------------------------------------------------------`)
+		targets.forEach((item, idx) => {
+			if (idx === 0) return
+			ns.tprintf(`[${item.target}]${JSON.stringify(item, null, 1)}`)
+		})
+	}
+
+	//display available contracts (including home as they can spawn there)
+	allServers.forEach((target, idx) => {
+		let contracts = getServerContracts(ns, target);
+		if (contracts.length > 0)
+			ns.tprintf(`WARN [${target}] Has the following contracts:`)
+		contracts.forEach((contract, i) => {
+			//printing contract semi styled:
+			ns.tprintf(`(${i}) ${JSON.stringify(
+				contract,
+				(key, value) => Array.isArray(value) ? `[${value}]` : value,
+				4)}`)
+		})
 	})
+	ns.tprintf(`INFO Best target: ${JSON.stringify(best, null, 1)}`)
 
 	return best
 }
