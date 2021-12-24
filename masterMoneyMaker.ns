@@ -2,7 +2,7 @@
 //2GB only, no need for more threads
 //Master script, constantly loads all data in the window to be used publicly
 export async function main(ns) {
-	const target = ns.args[0] || 'joesguns';//joes' most profitable?
+	const target = ns.args[0] || 'foodnstuff';//joes' most profitable?
 	let targetObj = {
 		target
 	}
