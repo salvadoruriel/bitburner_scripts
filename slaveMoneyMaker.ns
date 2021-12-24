@@ -6,8 +6,9 @@ export async function main(ns) {
 		//getting object
 		let targetObj = eval('window.targetObj');
 		while (!targetObj) {
-			ns.tprintf(`ERROR targetObj not found in window`);
+			ns.tprint(`ERROR targetObj not found in window`);
 			await ns.sleep(20 * 1000)
+			targetObj = eval('window.targetObj');
 		}
 
 		//get parameters from object
