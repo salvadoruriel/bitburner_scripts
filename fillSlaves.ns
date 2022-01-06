@@ -5,6 +5,9 @@ export async function main(ns) {
 	const scriptToRun = 'slaveMoneyMaker.ns'
 	const threads = 30//use more threads if possible or worth it
 	const reservedRam = 80 //GB to be used later
+	//in milliseconds, max wait time for all scripts, 
+	//	affects sleep between and execution between scripts
+	const maxAwaitTime = 3*60*1000 
 
 	const availableRam = ns.getServerMaxRam(hostName) - ns.getServerUsedRam(hostName) - reservedRam
 	const scriptRam = ns.getScriptRam(scriptToRun) * threads
@@ -14,9 +17,14 @@ export async function main(ns) {
 	ns.tprintf(`scriptRam: ${scriptRam}`, scriptRam)
 	ns.tprintf(`PossibleScripts: ${possibleScripts}`, possibleScripts)
 	return */
+	const waitTimePerscript = Math.floor(maxAwaitTime / possibleScripts)
 
 	for (let i = 0; i <= possibleScripts; i++) {
 		//running the script with an increasing arg to avoid duplicates
 		ns.run(scriptToRun, threads, `script#${i}`)
+		//waiting to avoid all of them running at once same operations
+		//might be a bit more slow with huge amounts of ram
+		await ns.sleep(waitTimePerscript) 
 	}
+	ns.tprintf(`INFO Finished filling ${hostName} with ${possibleScripts} scripts of ${scriptToRun}`)
 }
