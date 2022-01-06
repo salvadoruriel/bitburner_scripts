@@ -1,0 +1,22 @@
+/** @param {NS} ns **/
+//fills home with slave scripts, useful when I have too much ram
+export async function main(ns) {
+	const hostName = 'home'
+	const scriptToRun = 'slaveMoneyMaker.ns'
+	const threads = 30//use more threads if possible or worth it
+	const reservedRam = 80 //GB to be used later
+
+	const availableRam = ns.getServerMaxRam(hostName) - ns.getServerUsedRam(hostName) - reservedRam
+	const scriptRam = ns.getScriptRam(scriptToRun) * threads
+	const possibleScripts = Math.floor(availableRam / scriptRam)
+	/* 
+	ns.tprintf(`availableRam: ${availableRam}`, availableRam)
+	ns.tprintf(`scriptRam: ${scriptRam}`, scriptRam)
+	ns.tprintf(`PossibleScripts: ${possibleScripts}`, possibleScripts)
+	return */
+
+	for (let i = 0; i <= possibleScripts; i++) {
+		//running the script with an increasing arg to avoid duplicates
+		ns.run(scriptToRun, threads, `script#${i}`)
+	}
+}
